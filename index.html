@@ -2228,7 +2228,10 @@ function renderMediaBin() {
 }
 function removeMedia(id) {
   const used = project.clips.filter(c => c.mediaId === id).length;
-  if (used && !confirm(`This media is used by ${used} clip(s) on the timeline. Remove it and those clips?`)) return;
+  if (used) { confirmModal(`This media is used by ${used} clip(s) on the timeline. Remove it and those clips?`, 'Remove', () => doRemoveMedia(id)); return; }
+  doRemoveMedia(id);
+}
+function doRemoveMedia(id) {
   removeClips(project.clips.filter(c => c.mediaId === id).map(c => c.id), false);
   const rt = RT.get(id); if (rt && rt.url) URL.revokeObjectURL(rt.url);
   RT.delete(id); project.media = project.media.filter(m => m.id !== id);
@@ -3152,9 +3155,15 @@ function openShortcuts() {
   openModal(h('div', { class: 'modal' }, h('header', {}, 'Keyboard shortcuts', h('button', { class: 'ghost', onclick: closeModal }, '✕')), body));
 }
 
+/* in-page confirmation (native confirm() is unavailable in some embedded viewers) */
+function confirmModal(msg, yesLabel, onYes) {
+  openModal(h('div', { class: 'modal', style: { width: 'min(460px,94vw)' } }, h('header', {}, 'Please confirm'),
+    h('div', { class: 'mb' }, msg),
+    h('footer', {}, h('button', { onclick: closeModal }, 'Cancel'), h('button', { class: 'warn', onclick: () => { closeModal(); onYes(); } }, yesLabel))));
+}
 function newEmpty() {
-  if (project.clips.length && !confirm('Start a new empty project? Unsaved changes will be lost.')) return;
-  loadProject(newProject());
+  if (!project.clips.length) { loadProject(newProject()); return; }
+  confirmModal('Start a new empty project? Unsaved changes will be lost.', 'New project', () => loadProject(newProject()));
 }
 
 /* ---------- drag veil ---------- */
